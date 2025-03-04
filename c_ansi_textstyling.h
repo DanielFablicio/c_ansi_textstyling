@@ -133,27 +133,29 @@
 #define   FG_BOLD_CYAN(str)       FG_BOLD_CYAN_E      str RESET_FG_COLOR RESET_BOLD
 #define   FG_BOLD_WHITE(str)      FG_BOLD_WHITE_E     str RESET_FG_COLOR RESET_BOLD
 
-#define   BG_BLACK(str)           BG_BLACK_E          str RESET_BG_COLOR
-#define   BG_RED(str)             BG_RED_E            str RESET_BG_COLOR
-#define   BG_GREEN(str)           BG_GREEN_E          str RESET_BG_COLOR
-#define   BG_YELLOW(str)          BG_YELLOW_E         str RESET_BG_COLOR
-#define   BG_BLUE(str)            BG_BLUE_E           str RESET_BG_COLOR
-#define   BG_MAGENTA(str)         BG_MAGENTA_E        str RESET_BG_COLOR
-#define   BG_CYAN(str)            BG_CYAN_E           str RESET_BG_COLOR
-#define   BG_WHITE(str)           BG_WHITE_E          str RESET_BG_COLOR
+//Using the Erase in Line escape code (\033[K) to correct bugs with newline-terminated strings
+//that only appear when resetting the background
+#define   BG_BLACK(str)           BG_BLACK_E          str RESET_BG_COLOR "\033[K"
+#define   BG_RED(str)             BG_RED_E            str RESET_BG_COLOR "\033[K"
+#define   BG_GREEN(str)           BG_GREEN_E          str RESET_BG_COLOR "\033[K"
+#define   BG_YELLOW(str)          BG_YELLOW_E         str RESET_BG_COLOR "\033[K"
+#define   BG_BLUE(str)            BG_BLUE_E           str RESET_BG_COLOR "\033[K"
+#define   BG_MAGENTA(str)         BG_MAGENTA_E        str RESET_BG_COLOR "\033[K"
+#define   BG_CYAN(str)            BG_CYAN_E           str RESET_BG_COLOR "\033[K"
+#define   BG_WHITE(str)           BG_WHITE_E          str RESET_BG_COLOR "\033[K"
 
-#define   BG_BOLD_BLACK(str)      BG_BOLD_BLACK_E     str RESET_BG_COLOR RESET_BOLD
-#define   BG_BOLD_RED(str)        BG_BOLD_RED_E       str RESET_BG_COLOR RESET_BOLD
-#define   BG_BOLD_GREEN(str)      BG_BOLD_GREEN_E     str RESET_BG_COLOR RESET_BOLD
-#define   BG_BOLD_YELLOW(str)     BG_BOLD_YELLOW_E    str RESET_BG_COLOR RESET_BOLD
-#define   BG_BOLD_BLUE(str)       BG_BOLD_BLUE_E      str RESET_BG_COLOR RESET_BOLD
-#define   BG_BOLD_MAGENTA(str)    BG_BOLD_MAGENTA_E   str RESET_BG_COLOR RESET_BOLD
-#define   BG_BOLD_CYAN(str)       BG_BOLD_CYAN_E      str RESET_BG_COLOR RESET_BOLD
-#define   BG_BOLD_WHITE(str)      BG_BOLD_WHITE_E     str RESET_BG_COLOR RESET_BOLD
+#define   BG_BOLD_BLACK(str)      BG_BOLD_BLACK_E     str RESET_BG_COLOR RESET_BOLD "\033[K"
+#define   BG_BOLD_RED(str)        BG_BOLD_RED_E       str RESET_BG_COLOR RESET_BOLD "\033[K"
+#define   BG_BOLD_GREEN(str)      BG_BOLD_GREEN_E     str RESET_BG_COLOR RESET_BOLD "\033[K"
+#define   BG_BOLD_YELLOW(str)     BG_BOLD_YELLOW_E    str RESET_BG_COLOR RESET_BOLD "\033[K"
+#define   BG_BOLD_BLUE(str)       BG_BOLD_BLUE_E      str RESET_BG_COLOR RESET_BOLD "\033[K"
+#define   BG_BOLD_MAGENTA(str)    BG_BOLD_MAGENTA_E   str RESET_BG_COLOR RESET_BOLD "\033[K"
+#define   BG_BOLD_CYAN(str)       BG_BOLD_CYAN_E      str RESET_BG_COLOR RESET_BOLD "\033[K"
+#define   BG_BOLD_WHITE(str)      BG_BOLD_WHITE_E     str RESET_BG_COLOR RESET_BOLD "\033[K"
 
 #define   A256_FG(COLOR_ID, str)  "\033[38;5;" #COLOR_ID "m" str RESET_FG_COLOR
-#define   A256_BG(COLOR_ID, str)  "\033[48;5;" #COLOR_ID "m" str RESET_BG_COLOR
+#define   A256_BG(COLOR_ID, str)  "\033[48;5;" #COLOR_ID "m" str RESET_BG_COLOR "\033[K"
 #define   RGB_FG(R, G, B, str)    "\033[38;2;" #R ";" #G ";" #B "m" str RESET_FG_COLOR
-#define   RGB_BG(R, G, B, str)    "\033[48;2;" #R ";" #G ";" #B "m" str RESET_BG_COLOR
+#define   RGB_BG(R, G, B, str)    "\033[48;2;" #R ";" #G ";" #B "m" str RESET_BG_COLOR "\033[K"
 
 #endif
