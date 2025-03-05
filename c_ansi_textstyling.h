@@ -33,7 +33,7 @@
 //Reset all styles. Specific restarts are from line 89.
 #define   RESET                   "\033[0m"
 
-//Styles---------------------------------------
+//Styles----------------------------------------------------------
 #define   BOLD_E                  "\033[1m"
 #define   DIM_E                   "\033[2m"
 #define   ITALIC_E                "\033[3m"
@@ -45,8 +45,9 @@
 #define   DOUBLE_UNDERLINE_E      "\033[21m"
 #define   CURLY_UNDERLINE_E       "\033[4:3m"
 #define   OVERLINE_E              "\033[53m"
+//----------------------------------------------------------------
 
-//Text/Foreground Colors-----------------------
+//Text/Foreground Colors------------------------------------------
 #define   FG_BLACK_E              "\033[30m"
 #define   FG_RED_E                "\033[31m"
 #define   FG_GREEN_E              "\033[32m"
@@ -55,7 +56,7 @@
 #define   FG_MAGENTA_E            "\033[35m"
 #define   FG_CYAN_E               "\033[36m"
 #define   FG_WHITE_E              "\033[37m"
-//High Intensity / Bright----------------------
+//High Intensity / Bright-----------------------------------------
 #define   FG_HI_BLACK_E           "\033[90m"
 #define   FG_HI_RED_E             "\033[91m"
 #define   FG_HI_GREEN_E           "\033[92m"
@@ -64,9 +65,9 @@
 #define   FG_HI_MAGENTA_E         "\033[95m"
 #define   FG_HI_CYAN_E            "\033[96m"
 #define   FG_HI_WHITE_E           "\033[97m"
-//---------------------------------------------
+//----------------------------------------------------------------
 
-//Background Colors----------------------------
+//Background Colors-----------------------------------------------
 #define   BG_BLACK_E              "\033[40m"
 #define   BG_RED_E                "\033[41m"
 #define   BG_GREEN_E              "\033[42m"
@@ -75,7 +76,7 @@
 #define   BG_MAGENTA_E            "\033[45m"
 #define   BG_CYAN_E               "\033[46m"
 #define   BG_WHITE_E              "\033[47m"
-//High Intensity / Bright----------------------
+//High Intensity / Bright-----------------------------------------
 #define   BG_HI_BLACK_E           "\033[100m"
 #define   BG_HI_RED_E             "\033[101m"
 #define   BG_HI_GREEN_E           "\033[102m"
@@ -84,9 +85,16 @@
 #define   BG_HI_MAGENTA_E         "\033[105m"
 #define   BG_HI_CYAN_E            "\033[106m"
 #define   BG_HI_WHITE_E           "\033[107m"
-//---------------------------------------------
+//----------------------------------------------------------------
 
-//Specific Resets------------------------------
+//ANSI 256 and RGB colors-----------------------------------------
+#define   A256_FG_E(COLOR_ID)  "\033[38;5;" #COLOR_ID "m"
+#define   A256_BG_E(COLOR_ID)  "\033[48;5;" #COLOR_ID "m"
+#define   RGB_FG_E(R, G, B)    "\033[38;2;" #R ";" #G ";" #B "m"
+#define   RGB_BG_E(R, G, B)    "\033[48;2;" #R ";" #G ";" #B "m"
+//----------------------------------------------------------------
+
+//Specific Resets-------------------------------------------------
 #define   RESET_BOLD              "\033[22m"
 #define   RESET_DIM               "\033[22m"
 #define   RESET_ITALIC            "\033[23m"
@@ -101,6 +109,7 @@
 
 #define   RESET_FG_COLOR          "\033[39m"
 #define   RESET_BG_COLOR          "\033[49m"
+//----------------------------------------------------------------
 
 //Function Macros-----------------------------------------------------------------------
 #define   BOLD(str)               BOLD_E              str RESET_BOLD
