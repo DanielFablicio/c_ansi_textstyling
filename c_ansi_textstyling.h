@@ -30,7 +30,7 @@
  * GitHub: https://github.com/DanielFablicio/c_ansi_text_styling
  */
 
-//Reset all styles. Specific restarts are from line 89.
+//Reset all styles. Specific restarts are from line 97.
 #define   RESET                   "\033[0m"
 
 //Styles----------------------------------------------------------
