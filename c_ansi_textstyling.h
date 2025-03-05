@@ -55,15 +55,15 @@
 #define   FG_MAGENTA_E            "\033[35m"
 #define   FG_CYAN_E               "\033[36m"
 #define   FG_WHITE_E              "\033[37m"
-//Bright---------------------------------------
-#define   FG_BOLD_BLACK_E         "\033[90m"
-#define   FG_BOLD_RED_E           "\033[91m"
-#define   FG_BOLD_GREEN_E         "\033[92m"
-#define   FG_BOLD_YELLOW_E        "\033[93m"
-#define   FG_BOLD_BLUE_E          "\033[94m"
-#define   FG_BOLD_MAGENTA_E       "\033[95m"
-#define   FG_BOLD_CYAN_E          "\033[96m"
-#define   FG_BOLD_WHITE_E         "\033[97m"
+//High Intensity / Bright----------------------
+#define   FG_HI_BLACK_E           "\033[90m"
+#define   FG_HI_RED_E             "\033[91m"
+#define   FG_HI_GREEN_E           "\033[92m"
+#define   FG_HI_YELLOW_E          "\033[93m"
+#define   FG_HI_BLUE_E            "\033[94m"
+#define   FG_HI_MAGENTA_E         "\033[95m"
+#define   FG_HI_CYAN_E            "\033[96m"
+#define   FG_HI_WHITE_E           "\033[97m"
 //---------------------------------------------
 
 //Background Colors----------------------------
@@ -75,15 +75,15 @@
 #define   BG_MAGENTA_E            "\033[45m"
 #define   BG_CYAN_E               "\033[46m"
 #define   BG_WHITE_E              "\033[47m"
-//Bright---------------------------------------
-#define   BG_BOLD_BLACK_E         "\033[100m"
-#define   BG_BOLD_RED_E           "\033[101m"
-#define   BG_BOLD_GREEN_E         "\033[102m"
-#define   BG_BOLD_YELLOW_E        "\033[103m"
-#define   BG_BOLD_BLUE_E          "\033[104m"
-#define   BG_BOLD_MAGENTA_E       "\033[105m"
-#define   BG_BOLD_CYAN_E          "\033[106m"
-#define   BG_BOLD_WHITE_E         "\033[107m"
+//High Intensity / Bright----------------------
+#define   BG_HI_BLACK_E           "\033[100m"
+#define   BG_HI_RED_E             "\033[101m"
+#define   BG_HI_GREEN_E           "\033[102m"
+#define   BG_HI_YELLOW_E          "\033[103m"
+#define   BG_HI_BLUE_E            "\033[104m"
+#define   BG_HI_MAGENTA_E         "\033[105m"
+#define   BG_HI_CYAN_E            "\033[106m"
+#define   BG_HI_WHITE_E           "\033[107m"
 //---------------------------------------------
 
 //Specific Resets------------------------------
@@ -124,14 +124,14 @@
 #define   FG_CYAN(str)            FG_CYAN_E           str RESET_FG_COLOR
 #define   FG_WHITE(str)           FG_WHITE_E          str RESET_FG_COLOR
 
-#define   FG_BOLD_BLACK(str)      FG_BOLD_BLACK_E     str RESET_FG_COLOR
-#define   FG_BOLD_RED(str)        FG_BOLD_RED_E       str RESET_FG_COLOR
-#define   FG_BOLD_GREEN(str)      FG_BOLD_GREEN_E     str RESET_FG_COLOR
-#define   FG_BOLD_YELLOW(str)     FG_BOLD_YELLOW_E    str RESET_FG_COLOR
-#define   FG_BOLD_BLUE(str)       FG_BOLD_BLUE_E      str RESET_FG_COLOR
-#define   FG_BOLD_MAGENTA(str)    FG_BOLD_MAGENTA_E   str RESET_FG_COLOR
-#define   FG_BOLD_CYAN(str)       FG_BOLD_CYAN_E      str RESET_FG_COLOR
-#define   FG_BOLD_WHITE(str)      FG_BOLD_WHITE_E     str RESET_FG_COLOR
+#define   FG_HI_BLACK(str)        FG_HI_BLACK_E       str RESET_FG_COLOR
+#define   FG_HI_RED(str)          FG_HI_RED_E         str RESET_FG_COLOR
+#define   FG_HI_GREEN(str)        FG_HI_GREEN_E       str RESET_FG_COLOR
+#define   FG_HI_YELLOW(str)       FG_HI_YELLOW_E      str RESET_FG_COLOR
+#define   FG_HI_BLUE(str)         FG_HI_BLUE_E        str RESET_FG_COLOR
+#define   FG_HI_MAGENTA(str)      FG_HI_MAGENTA_E     str RESET_FG_COLOR
+#define   FG_HI_CYAN(str)         FG_HI_CYAN_E        str RESET_FG_COLOR
+#define   FG_HI_WHITE(str)        FG_HI_WHITE_E       str RESET_FG_COLOR
 
 //Using the Erase in Line escape code (\033[K) to correct bugs with newline-terminated strings
 //that only appear when resetting the background
@@ -144,14 +144,14 @@
 #define   BG_CYAN(str)            BG_CYAN_E           str RESET_BG_COLOR "\033[K"
 #define   BG_WHITE(str)           BG_WHITE_E          str RESET_BG_COLOR "\033[K"
 
-#define   BG_BOLD_BLACK(str)      BG_BOLD_BLACK_E     str RESET_BG_COLOR "\033[K"
-#define   BG_BOLD_RED(str)        BG_BOLD_RED_E       str RESET_BG_COLOR "\033[K"
-#define   BG_BOLD_GREEN(str)      BG_BOLD_GREEN_E     str RESET_BG_COLOR "\033[K"
-#define   BG_BOLD_YELLOW(str)     BG_BOLD_YELLOW_E    str RESET_BG_COLOR "\033[K"
-#define   BG_BOLD_BLUE(str)       BG_BOLD_BLUE_E      str RESET_BG_COLOR "\033[K"
-#define   BG_BOLD_MAGENTA(str)    BG_BOLD_MAGENTA_E   str RESET_BG_COLOR "\033[K"
-#define   BG_BOLD_CYAN(str)       BG_BOLD_CYAN_E      str RESET_BG_COLOR "\033[K"
-#define   BG_BOLD_WHITE(str)      BG_BOLD_WHITE_E     str RESET_BG_COLOR "\033[K"
+#define   BG_HI_BLACK(str)        BG_HI_BLACK_E       str RESET_BG_COLOR "\033[K"
+#define   BG_HI_RED(str)          BG_HI_RED_E         str RESET_BG_COLOR "\033[K"
+#define   BG_HI_GREEN(str)        BG_HI_GREEN_E       str RESET_BG_COLOR "\033[K"
+#define   BG_HI_YELLOW(str)       BG_HI_YELLOW_E      str RESET_BG_COLOR "\033[K"
+#define   BG_HI_BLUE(str)         BG_HI_BLUE_E        str RESET_BG_COLOR "\033[K"
+#define   BG_HI_MAGENTA(str)      BG_HI_MAGENTA_E     str RESET_BG_COLOR "\033[K"
+#define   BG_HI_CYAN(str)         BG_HI_CYAN_E        str RESET_BG_COLOR "\033[K"
+#define   BG_HI_WHITE(str)        BG_HI_WHITE_E       str RESET_BG_COLOR "\033[K"
 
 #define   A256_FG(COLOR_ID, str)  "\033[38;5;" #COLOR_ID "m" str RESET_FG_COLOR
 #define   A256_BG(COLOR_ID, str)  "\033[48;5;" #COLOR_ID "m" str RESET_BG_COLOR "\033[K"
