@@ -27,7 +27,7 @@
  * -----------------------------------------------------------------------------
  *
  * More information and examples:
- * GitHub: https://github.com/DanielFablicio/c_ansi_text_styling
+ * GitHub: https://github.com/DanielFablicio/c_ansi_textstyling
  */
 
 //Reset all styles. Specific restarts are from line 97.
