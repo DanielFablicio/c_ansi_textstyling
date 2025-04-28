@@ -10,13 +10,13 @@
  *    Use macros ending in _E before the string and a reset macro afterward
  *    when necessary.
  *
- *    Example: printf(BOLD_E FG_RED_E "Hello" RESET);
+ *    Example: printf(BOLD_E FG_RED_E "Hello\n" RESET);
  *
  * 2. FUNCTION MACROS (CONCISE)
- *    Use function-like macros (at the end of this file) to style text,
- *    which automatically apply and reset styles. [At the end of the file]
+ *    Use function-like macros to style text, which automatically apply and
+ *    reset styles. [At the end of the file]
  *
- *    Example: printf(BOLD(FG_RED("Hello")));
+ *    Example: printf(BOLD(FG_RED("Hello\n")));
  *
  * -----------------------------------------------------------------------------
  * NOTES
