@@ -54,6 +54,10 @@ CURLY_UNDERLINE, OVERLINE
   printf(A256_FG(%d, "Hello, World\n"), n);
   ```
 
+![img3](images/all_ansi_colors_out.png)
+
+*Output of example03.c*
+
 ## RGB Colors
   Modern terminals also support 24-bit RGB. Use the `RGB_FG` or `RGB_BG` macros to apply colors.
   ```c
@@ -63,6 +67,10 @@ CURLY_UNDERLINE, OVERLINE
   ```c
   printf(RGB_FG(%d, %d, 0, "Hello, World\n"), r, g);
   ```
+
+![img4](images/rgb_colors_out.png)
+
+*Output of example04.c*
 
 # Notes
 ## Reset Macros
