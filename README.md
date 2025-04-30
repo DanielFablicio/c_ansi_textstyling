@@ -49,11 +49,19 @@ CURLY_UNDERLINE, OVERLINE
   ```c
   printf(A256_FG(21, "Hello, World\n")); // Results in dark blue text.
   ```
+  For use with formatted variables, pass the format specifier **WITHOUT QUOTES**.
+  ```c
+  printf(A256_FG(%d, "Hello, World\n"), n);
+  ```
 
 ## RGB Colors
   Modern terminals also support 24-bit RGB. Use the `RGB_FG` or `RGB_BG` macros to apply colors.
   ```c
   printf(RGB_FG(255, 126, 0, "Hello, World\n")); // Results in orange text.
+  ```
+  Same as ANSI macros for formatting.
+  ```c
+  printf(RGB_FG(%d, %d, 0, "Hello, World\n"), r, g);
   ```
 
 # Notes
