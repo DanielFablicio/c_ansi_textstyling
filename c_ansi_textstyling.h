@@ -167,6 +167,10 @@
 #define   A256_BG(COLOR_ID, str)  "\033[48;5;" #COLOR_ID "m" str RESET_BG
 #define   RGB_FG(R, G, B, str)    "\033[38;2;" #R ";" #G ";" #B "m" str RESET_FG
 #define   RGB_BG(R, G, B, str)    "\033[48;2;" #R ";" #G ";" #B "m" str RESET_BG
+/*
+  For use with formatted variables, pass the format specifier WITHOUT QUOTES.
 
+  Example: `printf(RGB_FG(%d, %d, 0, "Hello, World\n"), r, g)`;
+*/
 
 #endif
