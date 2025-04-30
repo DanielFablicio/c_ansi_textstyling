@@ -5,7 +5,7 @@
 
 int main() {
     printf(
-        BOLD("\n Styles---------------------------\n\n")
+        BOLD("\n Styles-------------------------\n\n")
         " Normal:            " string "\n"
         " Bold:              " BOLD(string)
         " Dim:               " DIM(string)
