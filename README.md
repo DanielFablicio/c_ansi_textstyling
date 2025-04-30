@@ -26,6 +26,8 @@ CURLY_UNDERLINE, OVERLINE
 
 ⚠️: _Not all terminals support all styles_
 
+> This and the next screenshots were taken in the [ghostty](https://ghostty.org/) terminal emulator with the "deep" theme.
+
 ![img](images/all_styles_out.png)
 
 *Output of example01.c*
