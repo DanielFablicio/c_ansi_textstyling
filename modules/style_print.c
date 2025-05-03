@@ -85,11 +85,10 @@ int styps(const char *str) {
             if (*str == '{') {
                 putchar('{');
                 str++;
-            }
-            style(&str);
+            } else
+                style(&str);
+            continue;
         }
-        if (!*str)
-            break;
         putchar(*str);
         str++;
         count++;
