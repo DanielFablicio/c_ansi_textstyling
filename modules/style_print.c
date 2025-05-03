@@ -124,6 +124,16 @@ static void style(const char **s) {
         if (**s > 'A' && **s < 'Z') {
             try_parse_style(**s, &any_valid);
         }
+        if (**s == ':') {
+            if (any_valid) {
+                putchar('m');
+            }
+            while(*((*s)+1) != '}' && *((*s)+1) != '\0') {
+                (*s)++;
+                putchar(**s);
+            }
+            printf(ESC "0");
+        }
         (*s)++;
     }
     if (any_valid)
