@@ -81,8 +81,7 @@ int styps(const char *str) {
     int count = 1; //\n
     while(*str > 0) {
         if (*str == '{') {
-            str++;
-            if (*str == '{') {
+            if (*(++str) == '{') {
                 putchar('{');
                 str++;
             } else
@@ -97,51 +96,33 @@ int styps(const char *str) {
     return count;
 }
 
+static void start_color_buffer(char *color_buf, char prefix);
+static void set_hi_color(char *color_buf);
+static void try_parse_color(char *color_buf, char clr, bool *control_flag);
+static void try_parse_style(const char ch, bool *control_flag);
+
 static void style(const char **s) {
     if (**s == '}')
         printf(ESC "0m");
     
-    int seted_color = 0;
     bool any_valid = false;
-    char buf[4];
-    buf[3] = '\0';
+    int setted_colors = 0;
     while(**s > 0 && **s != '}') {
-        if (seted_color < 2 && (**s == 'f' || **s == 'b')) {
-            buf[0] = '0';
-            buf[1] = (**s == 'b') ? '4' : '3';
+        if (setted_colors++ < 2 && (**s == 'f' || **s == 'b')) {
+            char color_buf[4];
+            start_color_buffer(color_buf, **s);
             
             (*s)++;
             
             if (**s == 'h') {
-                if (buf[1] == '4') {
-                    buf[1] = '0';
-                    buf[0] = '1';
-                }
-                buf[1] = (buf[1] == '4') ? '0' : '9';
+                set_hi_color(color_buf);
                 (*s)++;
             }
             
-            char clr = islower(**s) ? COLORS[ltonum(**s)] : 0;
-            
-            if (clr) {
-                if (!any_valid) {
-                    any_valid = true;
-                    printf(ESC);
-                }
-                buf[2] = clr;
-                printf(";%s", buf);
-            }
-            seted_color++;
+            try_parse_color(color_buf, **s, &any_valid);
         }
         if (**s > 'A' && **s < 'Z') {
-            const char *sty = STYLES[utonum(**s)];
-            if (*sty) {
-                if (!any_valid) {
-                    any_valid = true;
-                    printf(ESC);
-                }
-                printf(";%s", sty);
-            }
+            try_parse_style(**s, &any_valid);
         }
         (*s)++;
     }
@@ -149,4 +130,40 @@ static void style(const char **s) {
         putchar('m');
     if (**s != 0)
         (*s)++;
+}
+
+static void start_color_buffer(char *color_buf, char prefix) {
+    color_buf[0] = '0';
+    color_buf[1] = (prefix == 'b') ? '4' : '3';
+    color_buf[3] = '\0';
+}
+
+static void set_hi_color(char *color_buf) {
+    if (color_buf[1] == '4') {
+        color_buf[1] = '0';
+        color_buf[0] = '1';
+    } else
+        color_buf[1] = '9';
+}
+
+static void try_parse_color(char *color_buf, char clr, bool *control_flag) {
+    if (islower(clr) && COLORS[ltonum(clr)]) {
+        if (!*control_flag) {
+            *control_flag = true;
+            printf(ESC);
+        }
+        color_buf[2] = COLORS[ltonum(clr)];
+        printf(";%s", color_buf);
+    }
+}
+
+static void try_parse_style(const char ch, bool *control_flag) {
+    const char *sty;
+    if ((sty = STYLES[utonum(ch)])) {
+        if (!*control_flag) {
+            *control_flag = true;
+            printf(ESC);
+        }
+        printf(";%s", sty);
+    }
 }
