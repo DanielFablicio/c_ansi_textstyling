@@ -79,7 +79,7 @@ int stypf(const char *restrict str, ...) {
 
 int styps(const char *str) {
     int count = 1; //\n
-    while(*str > 0) {
+    while(*str != '\0') {
         if (*str == '{') {
             if (*(++str) == '{') {
                 putchar('{');
