@@ -107,8 +107,21 @@ static void try_parse_style(const char ch, bool *control_flag);
 
 static void style(const char **s) {
     if (**s == '}')
-        printf(ESC "0m");
-    
+        printf(ESC RESET_ALL);
+    if (**s == '_') {
+        (*s)++;
+        if (**s == 'f' || **s == 'b') {
+            if (**s == 'f')
+                printf(ESC RESET_FG);
+            else
+                printf(ESC RESET_BG);
+            (*s)++;
+        }
+        bool discard;
+        while(**s != '}' && **s != '\0')
+            (*s)++;
+    }
+
     bool any_valid = false;
     int setted_colors = 0;
     while(**s > 0 && **s != '}') {
