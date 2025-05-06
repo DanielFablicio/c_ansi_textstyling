@@ -104,6 +104,7 @@ static void start_color_buffer(char *color_buf, char prefix);
 static void set_hi_color(char *color_buf);
 static void try_parse_color(char *color_buf, char clr, bool *control_flag);
 static void try_parse_style(const char ch, bool *control_flag);
+static void skip_until_close(const char **s, bool *control_flag);
 
 static void style(const char **s) {
     if (**s == '}')
@@ -143,14 +144,7 @@ static void style(const char **s) {
             try_parse_style(**s, &any_valid);
         }
         if (**s == ':') {
-            if (any_valid) {
-                putchar('m');
-            }
-            while(*((*s)+1) != '}' && *((*s)+1) != '\0') {
-                (*s)++;
-                putchar(**s);
-            }
-            printf(ESC "0");
+            skip_until_close(s, &any_valid);
         }
         (*s)++;
     }
@@ -194,4 +188,16 @@ static void try_parse_style(const char ch, bool *control_flag) {
         }
         printf(";%s", sty);
     }
+}
+
+static void skip_until_close(const char **s, bool *control_flag) {
+    if (*control_flag) {
+        putchar('m');
+    }
+    char next;
+    while((next = *((*s)+1)) != '}' && next != '\0') {
+        putchar(next);
+        (*s)++;
+    }
+    printf(ESC "0");
 }
