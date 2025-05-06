@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#define ESC "\033["
-
 #define bool int
 #define true 1
 #define false 0
@@ -13,6 +11,12 @@
 
 #define islower(c) ((c) >= 'a' && (c) <= 'z')
 #define isupper(c) ((c) >= 'A' && (c) <= 'Z')
+
+#define ESC "\033["
+
+#define RESET_ALL "0m"
+#define RESET_FG  "39m"
+#define RESET_BG  "49m" ESC "K"
 
 enum Styles {
     BOLD          = utonum('B'),
