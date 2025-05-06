@@ -20,14 +20,14 @@
 
 enum Styles {
     BOLD          = utonum('B'),
-    DIM           = utonum('D'),
+    FAINT         = utonum('F'), //dim
     ITALIC        = utonum('I'),
     UNDERLINE     = utonum('U'),
     BLINKING      = utonum('K'),
     REVERSE       = utonum('R'),
     HIDDEN        = utonum('H'),
     STRIKETHROUGH = utonum('S'),
-    D_UNDERLINE   = utonum('P'), //paired underline
+    D_UNDERLINE   = utonum('D'),
     C_UNDERLINE   = utonum('C'),
     OVERLINE      = utonum('O'),
 };
@@ -45,7 +45,7 @@ enum Colors {
 
 const char STYLES[26][4] = {
     [BOLD]          = "1",
-    [DIM]           = "2",
+    [FAINT]         = "2",
     [ITALIC]        = "3",
     [UNDERLINE]     = "4",
     [BLINKING]      = "5",
