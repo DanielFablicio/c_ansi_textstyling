@@ -108,7 +108,7 @@ static void style(const char **s) {
     bool any_valid = false;
     int setted_colors = 0;
     while(**s > 0 && **s != '}') {
-        if (setted_colors++ < 2 && (**s == 'f' || **s == 'b')) {
+        if (setted_colors < 2 && (**s == 'f' || **s == 'b')) {
             char color_buf[4];
             start_color_buffer(color_buf, **s);
             
@@ -120,6 +120,7 @@ static void style(const char **s) {
             }
             
             try_parse_color(color_buf, **s, &any_valid);
+            setted_colors++;
         }
         if (**s > 'A' && **s < 'Z') {
             try_parse_style(**s, &any_valid);
