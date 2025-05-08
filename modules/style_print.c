@@ -84,15 +84,18 @@ int stypf(const char *restrict str, ...) {
 int styps(const char *str) {
     int count = 1; //\n
     while(*str != '\0') {
-        if (*str == '{') {
-            if (*(++str) == '{') {
-                putchar('{');
+        unsigned char ch = *str;
+        if (ch == '{' && ch == '}') {
+            if (*(++str) == ch) {
+                putchar(ch);
+                str++;
+            } else if (ch == '}') {
                 str++;
             } else
                 style(&str);
             continue;
         }
-        putchar(*str);
+        putchar(ch);
         str++;
         count++;
     }
