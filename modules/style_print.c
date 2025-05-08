@@ -1,6 +1,7 @@
 #include "style_print.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 #define bool int
 #define true 1
@@ -103,104 +104,116 @@ int styps(const char *str) {
     return count;
 }
 
-static void start_color_buffer(char *color_buf, char prefix);
-static void set_hi_color(char *color_buf);
-static void try_parse_color(char *color_buf, char clr, bool *control_flag);
-static void try_parse_style(const char ch, bool *control_flag);
-static void skip_until_close(const char **s, bool *control_flag);
+#define BUF_SZ sizeof("00;0;000;000;000")
+
+typedef struct {
+    int setted_colors;
+} ControlLimits;
+
+static void handle_styling_parse(const char **s, char stybuf[],
+                                 ControlLimits *cl);
+static void handle_styling_reset(const char **s);
+static void parse_style(char ch, char stybuf[]);
+static void parse_color(char slc[], char stybuf[], ControlLimits *cl);
+static void skip_until_close(const char **s);
 
 static void style(const char **s) {
-    if (**s == '}')
-        printf(ESC RESET_ALL);
-    if (**s == '_') {
-        (*s)++;
-        if (**s == 'f' || **s == 'b') {
-            if (**s == 'f')
-                printf(ESC RESET_FG);
-            else
-                printf(ESC RESET_BG);
-            (*s)++;
-        }
-        bool discard;
-        while(**s != '}' && **s != '\0')
-            (*s)++;
+    if (**s == '}' || **s == '_') {
+        handle_styling_reset(s);
+        return;
     }
+    char stybuf[BUF_SZ] = {0};
 
-    bool any_valid = false;
-    int setted_colors = 0;
-    while(**s > 0 && **s != '}') {
-        if (setted_colors < 2 && (**s == 'f' || **s == 'b')) {
-            char color_buf[4];
-            start_color_buffer(color_buf, **s);
-            
-            (*s)++;
-            
-            if (**s == 'h') {
-                set_hi_color(color_buf);
-                (*s)++;
+    ControlLimits cl = {
+        .setted_colors = 0,
+    };
+
+    bool any_style_valid = false;
+    bool auto_reset_syntax = false;
+
+    while(**s != '}' && **s != '\0') {
+        stybuf[0] = '\0';
+        handle_styling_parse(s, stybuf, &cl);
+        if (stybuf[0]) {
+            if (!any_style_valid) {
+                any_style_valid = true;
+                printf(ESC);
             }
-            
-            try_parse_color(color_buf, **s, &any_valid);
-            setted_colors++;
-        }
-        if (**s > 'A' && **s < 'Z') {
-            try_parse_style(**s, &any_valid);
+            printf("%s;", stybuf);
         }
         if (**s == ':') {
-            skip_until_close(s, &any_valid);
+            auto_reset_syntax = true;
+            (*s)++;
+            break;
         }
-        (*s)++;
     }
-    if (any_valid)
+    if (auto_reset_syntax) {
+        skip_until_close(s);
+        handle_styling_reset(s);
+    }
+    if (any_style_valid)
         putchar('m');
-    if (**s != 0)
-        (*s)++;
 }
 
-static void start_color_buffer(char *color_buf, char prefix) {
-    color_buf[0] = '0';
-    color_buf[1] = (prefix == 'b') ? '4' : '3';
-    color_buf[3] = '\0';
+static bool is_valid_color(char slc[]) {
+    return slc[0] >= 'A' && slc[0] <= 'Z' && STYLES[ltonum(slc[0])];
+}
+static bool is_valid_style(char ch) {
+    return ch >= 'a' && ch <= 'z' && STYLES[utonum(ch)];
 }
 
-static void set_hi_color(char *color_buf) {
-    if (color_buf[1] == '4') {
-        color_buf[1] = '0';
-        color_buf[0] = '1';
-    } else
-        color_buf[1] = '9';
-}
+static void handle_styling_parse(const char **s, char stybuf[],
+                                 ControlLimits *cl)
+{
+    #define SLC_MAX_SZ sizeof("#000000")
+    char slc[SLC_MAX_SZ] = {**s};
 
-static void try_parse_color(char *color_buf, char clr, bool *control_flag) {
-    if (islower(clr) && COLORS[ltonum(clr)]) {
-        if (!*control_flag) {
-            *control_flag = true;
-            printf(ESC);
-        }
-        color_buf[2] = COLORS[ltonum(clr)];
-        printf(";%s", color_buf);
+    if (is_valid_style(slc[0])) {
+        parse_style(slc[0], stybuf);
+    }
+    if (is_valid_color(slc)) {
+        strncpy(slc, *s, SLC_MAX_SZ);
+        parse_color(slc, stybuf, cl);
     }
 }
 
-static void try_parse_style(const char ch, bool *control_flag) {
-    const char *sty;
-    if ((sty = STYLES[utonum(ch)])) {
-        if (!*control_flag) {
-            *control_flag = true;
-            printf(ESC);
-        }
-        printf(";%s", sty);
+static void handle_styling_reset(const char **s) {
+    const char *reset = RESET_ALL;
+    if (**s == '_'){
+        char next_ch = *++(*s);
+        if (next_ch == 'f')
+            reset = RESET_FG;
+        if (next_ch == 'b')
+            reset = RESET_BG;
     }
+    if (**s != '\0') (*s)++;
+    printf(ESC"%s", reset);
 }
 
-static void skip_until_close(const char **s, bool *control_flag) {
-    if (*control_flag) {
-        putchar('m');
-    }
-    char next;
-    while((next = *((*s)+1)) != '}' && next != '\0') {
-        putchar(next);
-        (*s)++;
-    }
-    printf(ESC "0");
+static void parse_style(char ch, char stybuf[]) {
+    snprintf(stybuf, BUF_SZ-1, "%s", STYLES[utonum(ch)]);
+}
+
+static void parse_color(char slc[], char stybuf[], ControlLimits *cl) {
+    if (cl->setted_colors++ == 2) return;
+    bool is_foreground = cl->setted_colors == 0;
+
+    char hi_color = slc[0];
+    char ground = is_foreground
+                    ? (hi_color == '1' ? '9' : '3')
+                    : (hi_color == '1' ? '0' : '4');
+
+    char color = slc[2];
+
+    char color_buf[3+1] = {
+        hi_color,
+        ground,
+        color
+    };
+    snprintf(stybuf, BUF_SZ-1, "%s", color_buf);
+}
+
+static void skip_until_close(const char **s) {
+    while(**s != '\0' && **s != '}')
+        putchar(*((*s)++));
 }
