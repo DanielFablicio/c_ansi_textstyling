@@ -131,7 +131,7 @@ static void style(const char **pts) {
         handle_styling_reset(pts);
         return;
     }
-    char stybuf[BUF_SZ+1] = {0};
+    char stybuf[BUF_SZ+1];
 
     ControlLimits cl = {
         .setted_colors = 0,
@@ -141,7 +141,7 @@ static void style(const char **pts) {
     bool auto_reset_syntax = false;
 
     while (**pts != '}' && **pts != '\0') {
-        stybuf[0] = '\0';
+        memset(stybuf, 0, BUF_SZ+1);
         int offset = handle_styling_parse(pts, stybuf, &cl);
         if (stybuf[0]) {
             if (!any_style_valid) {
@@ -226,16 +226,15 @@ static void hextorgb(const char *hex, char *out_rgb) {
 }
 
 static void parse_basic_color(const char *slc, char *color_buf, char ground) {
-    char hi_color = slc[0];
+    char hi_color = slc[0] == 'h' ? '1' : '0';
     char chosen_ground = ground == 'f'
                             ? (hi_color == '1' ? '9' : '3')
                             : (hi_color == '1' ? '0' : '4');
-    char color = COLORS[ltonum(slc[2])];
+    char color = COLORS[ltonum(slc[hi_color == '1' ? 1 : 0])];
 
     color_buf[0] = hi_color;
     color_buf[1] = chosen_ground;
     color_buf[2] = color;
-    snprintf(color_buf, 3, "%s", color_buf);
 }
 
 static void parse_rgb_color(const char *slc, char *color_buf, char ground) {
