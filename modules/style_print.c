@@ -203,7 +203,7 @@ static int parse_style(char ch, char *stybuf) {
 }
 
 static int parse_color(char *slc, char *stybuf, ControlLimits *cl) {
-    if (cl->setted_colors >= 2) return 0;
+    if (cl->setted_colors >= 2) return 1;
 
     int offset = 1;
     char ground = cl->setted_colors == 0 ? 'f' : 'b';
