@@ -95,7 +95,7 @@ int styps(const char *str) {
                 putchar(ch);
                 str++;
             } else if (ch == '}') {
-                str++;
+                ;
             } else
                 style(&str);
             continue;
