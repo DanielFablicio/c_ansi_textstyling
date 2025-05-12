@@ -13,7 +13,7 @@
 
 #define ESC "\033["
 
-#define RESET_ALL "0m"
+#define RESET_ALL "0m" ESC "K"
 #define RESET_FG  "39m"
 #define RESET_BG  "49m" ESC "K"
 
