@@ -5,6 +5,14 @@
 #include <ctype.h> //isdigit, isupper, toupper, islower
 #include <stdlib.h> //strtol
 
+#ifdef _WIN32
+    #include <io.h>
+    #define isatty _isatty
+    #define fileno _fileno
+#else
+    #include <unistd.h>
+#endif
+
 #define uint8 unsigned char
 
 #define isdigit_s(ch) isdigit((unsigned char)(ch))
@@ -15,7 +23,7 @@
 #define utonum(ch) ch - 'A'
 
 #define ESC "\033["
-
+// ESC K insure that background in strings with '\n' are propperly reseted
 #define RESET_ALL "0m" ESC "K"
 #define RESET_FG  "39m"
 #define RESET_BG  "49m" ESC "K"
@@ -97,9 +105,12 @@ enum States {
     READING_RGB_COLOR,
     READING_A256_COLOR,
     READING_STYLE,
+    READING_RESET,
+    DISPATCH_COLOR,
     SKIP_UNTIL_CLOSE,
-    SKIP_PRINT_UNTIL_CLOSE,
+    // SKIP_PRINT_UNTIL_CLOSE,
     WRITE_STYLING,
+    KEEP_CHAR
 };
 
 typedef enum States State;
@@ -139,19 +150,21 @@ int styps(const char *str) {
     return count;
 }
 
-typedef struct {
+typedef struct ContextVariables {
     State state;
     char srcbuf[SOURCE_STYLE_MAX_SZ+1];
     char prsbuf[PARSED_STYLE_MAX_SZ+1];
-    bool first_style;
     int counter;
+    bool first_style;
     int setted_colors;
+    void (*write_callback)(struct ContextVariables*);
 } ContextVariables;
 
 static bool is_valid_style(char ch);
 static bool is_valid_basic_color(char ch);
-static bool is_valid_a256_color(char ch);
 static bool is_valid_rgb_color(char ch);
+
+static bool is_valid_a256_color(const char *srcbuf);
 
 static void parse_style(const char *srcbuf, char *prsbuf);
 static void parse_basic_color(const char *srcbuf, char *prsbuf, char ground);
@@ -164,40 +177,90 @@ static void hand_parse_a256_color(char ch, ContextVariables *ctx);
 static void hand_parse_rgb_color(char ch, ContextVariables *ctx);
 
 static void write_styling(const char *prsbuf, bool *fst_style_flag);
+static void hand_write_styling(ContextVariables *ctx);
 
+//Write styling callback functions
+static void clbk_change_to_keep_char_state(ContextVariables *ctx) {
+    ctx->state = KEEP_CHAR;
+}
+
+#define DEBUG 1
 static void style(const char **ptrs) {
+    #if DEBUG == 0
+        bool is_atty = isatty(fileno(stdout));
+    #else
+        bool is_atty = true;
+    #endif
+
+    if (**ptrs == '}' && is_atty) {
+        printf(ESC RESET_ALL);
+        return;
+    }
+    
     ContextVariables ctx = {
-        .state = READING,
-        .srcbuf = "\0",
-        .prsbuf = "\0",
-        .first_style = true,
+        .state = is_atty ? READING : SKIP_UNTIL_CLOSE,
+        .srcbuf = "",
+        .prsbuf = "",
         .counter = 0,
+        .first_style = true,
         .setted_colors = 0,
+        .write_callback = NULL
     };
 
+    State dispatch_to;
     unsigned char ch;
     while ((ch = **ptrs) != '}' && ch != '\0') {
         switch (ctx.state) {
             case READING:
-                if (isupper(ch))
-                    ctx.state = READING_STYLE;
-                if (ctx.setted_colors < 2) {
-                    if (islower(ch))
-                        ctx.state = READING_BASIC_COLOR;
-                    if (ch == '$')
-                        ctx.state = READING_A256_COLOR;
-                    if (ch == '#')
-                        ctx.state = READING_RGB_COLOR;
-                    ctx.setted_colors++;
+                ctx.counter = 0;
+
+                bool skip_char = true; //skip the symbol of special stylings
+                switch (ch) {
+                    case '$':
+                        dispatch_to = READING_A256_COLOR;
+                        ctx.state = DISPATCH_COLOR;
+                        break;
+                    case '#':
+                        dispatch_to = READING_RGB_COLOR;
+                        ctx.state = DISPATCH_COLOR;
+                        break;
+                    case '_':
+                        ctx.state = READING_RESET; break;
+                    // case ':':
+                    //     ctx.state = SKIP_PRINT_UNTIL_CLOSE;
+                    //     break;
+                    default:
+                        skip_char = false;
+
+                        if (isupper(ch)) {
+                            ctx.state = READING_STYLE;
+                            break;
+                        }
+
+                        if (islower(ch)) {
+                            dispatch_to = READING_BASIC_COLOR;
+                            ctx.state = DISPATCH_COLOR;
+                        }
                 }
-                if (ch == '_')
-                    ctx.state = SKIP_UNTIL_CLOSE;
-                if (ch == ':')
-                    ctx.state = SKIP_PRINT_UNTIL_CLOSE;
+                if (skip_char) {
+                    (*ptrs)++;
+                    if (**ptrs == '\0')
+                        break;
+                }
+
+                if (ctx.state != READING)
+                    continue;
                 break;
             case READING_STYLE:
                 hand_parse_style(ch, &ctx);
                 break;
+            case DISPATCH_COLOR:
+                if (ctx.setted_colors >= 2) {
+                    ctx.state = READING;
+                    break;
+                }
+                ctx.state = dispatch_to;
+                continue;
             case READING_BASIC_COLOR:
                 hand_parse_basic_color(ch, &ctx);
                 break;
@@ -207,29 +270,44 @@ static void style(const char **ptrs) {
             case READING_RGB_COLOR:
                 hand_parse_rgb_color(ch, &ctx);
                 break;
+            case READING_RESET:
+                ctx.state = WRITE_STYLING;
+                ctx.prsbuf[0] = '0';
+                ctx.prsbuf[1] = '\0';
+                break;
             case SKIP_UNTIL_CLOSE:
-                //holds the state here
                 break;
-            case SKIP_PRINT_UNTIL_CLOSE:
-                putchar(ch);
-                break;
+            // case SKIP_PRINT_UNTIL_CLOSE:
+            //     putchar(ch);
+            //     break;
             case WRITE_STYLING:
-                write_styling(ctx.srcbuf, &ctx.first_style);
+                write_styling(ctx.prsbuf, &ctx.first_style);
                 ctx.state = READING;
                 break;
+            case KEEP_CHAR: //used with dinamic lenght input notations
+                ctx.state = READING;
+                continue;
         }
 
-        if (ctx.state == READING) {
-            ctx.counter = 0;
-        }
-        
         if (ctx.state != WRITE_STYLING) {
             (*ptrs)++;
         }
     }
 
-    if (!ctx.first_style)
+    if (!ctx.first_style) {
         putchar('m');
+    }    
+}
+
+void hand_write_styling(ContextVariables *ctx) {
+    ctx->state = READING;
+    
+    if (ctx->write_callback != NULL) {
+        ctx->write_callback(ctx);
+        ctx->write_callback = NULL;
+    }
+    
+    write_styling(ctx->prsbuf, &ctx->first_style);
 }
 
 inline bool is_valid_style(char ch) {
@@ -244,8 +322,14 @@ inline bool is_valid_rgb_color(char ch) {
     return (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F');
 }
 
-inline bool is_valid_a256_color(char ch) {
-    return (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F');
+inline bool is_valid_a256_color(const char *srcbuf) {
+    bool only_zeros = true;
+    for (int i = 0; srcbuf[i] != '\0'; i++) {
+        if (srcbuf[i] != '0')
+            only_zeros = false;
+    }
+    bool res = (strtol(srcbuf, NULL, 10) <= 255) && only_zeros;
+    return res;
 }
 
 void parse_style(const char *srcbuf, char *prsbuf) {
@@ -287,39 +371,60 @@ void hand_parse_style(char ch, ContextVariables *ctx) {
         return;
     }
     
+    ctx->state = WRITE_STYLING;
+    
     ctx->srcbuf[0] = ch;
     ctx->srcbuf[1] = '\0';
+
     parse_style(ctx->srcbuf, ctx->prsbuf);
-    ctx->state = WRITE_STYLING;
 }
 
 void hand_parse_basic_color(char ch, ContextVariables *ctx) {
-    if (ch != HI_COLOR_PREFIX && !is_valid_basic_color(ch)) {
-        ctx->state = READING;
-        return;
+    if (ch != HI_COLOR_PREFIX || ctx->counter == 1) {
+        if (!is_valid_basic_color(ch)) {
+            ctx->state = READING;
+            return;
+        }
     }
     
     ctx->srcbuf[ctx->counter++] = ch;
     
-    if (ch == HI_COLOR_PREFIX)
+    if (ch == HI_COLOR_PREFIX) {
         return;
+    }
     
     ctx->state = WRITE_STYLING;
+    ctx->setted_colors++;
+    
     ctx->srcbuf[ctx->counter] = '\0';
-    char ground = !ctx->setted_colors ? FOREGROUND : BACKGROUND;
+    char ground = ctx->setted_colors == 1 ? FOREGROUND : BACKGROUND;
+    
     parse_basic_color(ctx->srcbuf, ctx->prsbuf, ground);
 }
 
 void hand_parse_a256_color(char ch, ContextVariables *ctx) {
-    if (!isdigit((unsigned)ch)) {
-        if (ctx->counter == 0 && is_valid_a256_color(ch))
-            ;
-        //is_valid_a256_color(srcbuf)
+    bool finish_color = false;
+    if (!isdigit_s(ch)) {
+        if (ctx->counter == 0 || ctx->counter > 3) {
+            ctx->state = READING;
+            return;
+        }
+        finish_color = true;
     }
+    ctx->srcbuf[ctx->counter++] = ch;
 
+    if (!finish_color) {
+        ctx->srcbuf[ctx->counter] = '\0';
+        if (!is_valid_a256_color(ctx->srcbuf))
+            return;
+    }
+    
     ctx->state = WRITE_STYLING;
-    ctx->srcbuf[ctx->counter] = '\0';
-    char ground = !ctx->setted_colors ? FOREGROUND : BACKGROUND;
+    ctx->setted_colors++;
+    ctx->write_callback = clbk_change_to_keep_char_state;
+    
+    char ground = ctx->setted_colors == 1 ? FOREGROUND : BACKGROUND;
+
     parse_a256_color(ctx->srcbuf, ctx->prsbuf, ground);
 }
 
@@ -334,8 +439,12 @@ void hand_parse_rgb_color(char ch, ContextVariables *ctx) {
         return;
 
     ctx->state = WRITE_STYLING;
+    ctx->setted_colors++;
+    
     ctx->srcbuf[ctx->counter] = '\0';
-    char ground = !ctx->setted_colors ? FOREGROUND : BACKGROUND;
+
+    char ground = ctx->setted_colors == 1 ? FOREGROUND : BACKGROUND;
+
     parse_rgb_color(ctx->srcbuf, ctx->prsbuf, ground);
 }
 
