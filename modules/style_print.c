@@ -19,6 +19,7 @@
 #define isdigit_s(ch) isdigit((unsigned char)(ch))
 #define isupper_s(ch) isupper((unsigned char)(ch))
 #define toupper_s(ch) toupper((unsigned char)(ch))
+#define isalpha_s(ch) isalpha((unsigned char)(ch))
 
 #define ltonum(ch) ch - 'a'
 #define utonum(ch) ch - 'A'
@@ -37,6 +38,7 @@
 #define PRS_BSC_MASX_SZ (sizeof("107")-1)
 #define PRS_A256_MAX_SZ (sizeof("38;5;255")-1)
 #define PRS_RGB_MAX_SZ (sizeof("38;2;255;255;255")-1)
+#define PRS_RESET_MAZ_SZ (sizeof("4:0")-1)
 
 #define SOURCE_STYLE_MAX_SZ RGB_COLOR_MAX_SZ
 #define PARSED_STYLE_MAX_SZ PRS_RGB_MAX_SZ
@@ -70,10 +72,29 @@ enum Colors {
     BLUE    = ltonum('b'),
     MAGENTA = ltonum('m'),
     CYAN    = ltonum('c'),
-    WHITE   = ltonum('w')
+    WHITE   = ltonum('w'),
+
+    //'z' == no_color. Can't be implemented
 };
 
-const char STYLES[26][4] = {
+enum Resets {
+    RESET_BOLD          = BOLD,
+    RESET_FAINT         = FAINT, //dim
+    RESET_ITALIC        = ITALIC,
+    RESET_UNDERLINE     = UNDERLINE,
+    RESET_BLINKING      = BLINKING,
+    RESET_REVERSE       = REVERSE,
+    RESET_HIDDEN        = HIDDEN,
+    RESET_STRIKETHROUGH = STRIKETHROUGH,
+    RESET_D_UNDERLINE   = D_UNDERLINE,
+    RESET_C_UNDERLINE   = C_UNDERLINE,
+    RESET_OVERLINE      = OVERLINE,
+    
+    RESET_FG_COLOR      = ltonum('f'),
+    RESET_BG_COLOR      = ltonum('b'),
+};
+
+const char STYLES[26][3] = {
     [BOLD]          = "1",
     [FAINT]         = "2",
     [ITALIC]        = "3",
@@ -98,7 +119,22 @@ const char COLORS[26] = {
     [WHITE] = '7',
 };
 
-#define STYLE_MAX_SZ (sizeof(STYLES[0])-1)
+//only the style resets to reduce the size of the lookup array
+const char STYLE_RESETS[26][3] = {
+    [RESET_BOLD]          = "22",
+    [RESET_FAINT]         = "22",
+    [RESET_ITALIC]        = "23",
+    [RESET_UNDERLINE]     = "24",
+    [RESET_BLINKING]      = "25",
+    [RESET_REVERSE]       = "27",
+    [RESET_HIDDEN]        = "28",
+    [RESET_STRIKETHROUGH] = "29",
+    [RESET_D_UNDERLINE]   = "24",
+    [RESET_C_UNDERLINE]   = "4:0",
+    [RESET_OVERLINE]      = "55",
+};
+
+#define STYLE_MAX_SZ sizeof(STYLES[0])
 
 enum States {
     READING,
@@ -106,10 +142,11 @@ enum States {
     READING_RGB_COLOR,
     READING_A256_COLOR,
     READING_STYLE,
-    READING_RESET,
+    READING_RESETS,
     DISPATCH_COLOR,
-    SKIP_UNTIL_CLOSE,
+    SKIP_STYLING,
     WRITE_STYLING,
+    CHANGE_COLOR_GROUND,
 };
 
 typedef enum States State;
@@ -129,10 +166,11 @@ int stypf(const char *restrict str, ...) {
 
 int styps(const char *str) {
     int count = 1; //\n
-    while(*str != '\0') {
+    while (*str != '\0') {
         unsigned char ch = *str;
         if (ch == '{' || ch == '}') {
-            if (*(++str) == ch) {
+            str++;
+            if (*str == ch) {
                 putchar(ch);
                 str++;
             } else if (ch == '}') {
@@ -149,7 +187,7 @@ int styps(const char *str) {
     return count;
 }
 
-typedef struct ContextVariables {
+typedef struct StyleContext {
     State state;
     char srcbuf[SOURCE_STYLE_MAX_SZ+1];
     char prsbuf[PARSED_STYLE_MAX_SZ+1];
@@ -157,8 +195,9 @@ typedef struct ContextVariables {
     bool first_style;
     int setted_colors;
     char color_ground;
-    void (*write_callback)(struct ContextVariables*);
-} ContextVariables;
+    void (*write_callback)(struct StyleContext*);
+    void (*end_style_callback)(struct StyleContext*);
+} StyleContext;
 
 static bool is_valid_style(char ch);
 static bool is_valid_basic_color(char ch);
@@ -171,49 +210,70 @@ static void parse_basic_color(const char *srcbuf, char *prsbuf, char ground);
 static void parse_a256_color(const char *srcbuf, char *prsbuf, char ground);
 static void parse_rgb_color(const char *srcbuf, char *prsbuf, char ground);
 
-static void hand_parse_style(char ch, ContextVariables *ctx);
-static void hand_parse_basic_color(char ch, ContextVariables *ctx);
-static void hand_parse_a256_color(char ch, ContextVariables *ctx);
-static void hand_parse_rgb_color(char ch, ContextVariables *ctx);
+static void hand_parse_style(char ch, StyleContext *ctx);
+static void hand_parse_basic_color(char ch, StyleContext *ctx);
+static void hand_parse_a256_color(char ch, StyleContext *ctx);
+static void hand_parse_rgb_color(char ch, StyleContext *ctx);
+
+static void parse_reset(const char *srcbuf, char *prsbuf);
+static void hand_parse_reset(char ch, StyleContext *ctx);
 
 static void write_styling(const char *prsbuf, bool *fst_style_flag);
-static void hand_write_styling(ContextVariables *ctx);
+static void hand_write_styling(StyleContext *ctx);
 
-static void reset_context_aux_variables(ContextVariables *ctx) {
+static bool dispatch_color(State dispatch_to, StyleContext *ctx);
+static void reset_context_aux_variables(StyleContext *ctx);
+
+//Callback Functions
+static void clbk_increment_setted_colors(StyleContext *ctx);
+static void clbk_change_state_to_reading_resets(StyleContext *ctx);
+static void clbk_finish_reset_with_erase_in_line(StyleContext *ctx);
+
+static void reset_context_aux_variables(StyleContext *ctx) {
     ctx->counter = 0;
     ctx->write_callback = NULL;
 }
 
-static void clbk_increment_setted_colors(ContextVariables *ctx) {
+static void clbk_increment_setted_colors(StyleContext *ctx) {
     ctx->setted_colors++;
     ctx->color_ground = BACKGROUND;
 }
 
-#define DEBUG 1
+static void clbk_change_state_to_reading_resets(StyleContext *ctx) {
+    ctx->state = READING_RESETS;
+}
+
+static void clbk_finish_reset_with_erase_in_line(StyleContext *ctx) {
+    printf("\033[K");
+}
+
+#define DEBUG
+
 static void style(const char **ptrs) {
-    #if DEBUG == 0
-        bool is_atty = isatty(fileno(stdout));
-    #else
-        bool is_atty = true;
-    #endif
+    bool is_atty = isatty(fileno(stdout));
+#ifdef DEBUG
+    is_atty = true;
+#endif
 
     if (**ptrs == '}' && is_atty) {
         printf(ESC RESET_ALL);
         return;
     }
     
-    ContextVariables ctx = {
-        .state = is_atty ? READING : SKIP_UNTIL_CLOSE,
+    StyleContext ctx = {
+        .state = is_atty ? READING : SKIP_STYLING,
         .srcbuf = "",
         .prsbuf = "",
         .counter = 0,
         .first_style = true,
         .setted_colors = 0,
         .color_ground = FOREGROUND,
-        .write_callback = NULL
+        .write_callback = NULL,
+        .end_style_callback = NULL,
     };
 
     State dispatch_to;
+    
     unsigned char ch;
     while ((ch = **ptrs) != '}' && ch != '\0') {
         switch (ctx.state) {
@@ -230,17 +290,19 @@ static void style(const char **ptrs) {
                         dispatch_to = READING_RGB_COLOR;
                         ctx.state = DISPATCH_COLOR;
                         break;
-                    case '_':
-                        ctx.state = READING_RESET;
+                    case '-':
+                        ctx.state = READING_RESETS;
                         break;
-                    // case ':':
-                    //     ctx.state = SKIP_PRINT_UNTIL_CLOSE;
-                    //     break;
                     default:
                         skip_char = false;
 
                         if (isupper(ch)) {
                             ctx.state = READING_STYLE;
+                            break;
+                        }
+
+                        if (ch == '_') {
+                            ctx.state = CHANGE_COLOR_GROUND;
                             break;
                         }
 
@@ -250,20 +312,15 @@ static void style(const char **ptrs) {
                         }
                 }
 
-                if (ctx.state != READING && !skip_char) {
+                if (ctx.state != READING && !skip_char)
                     continue;
-                }
                 break;
             case READING_STYLE:
                 hand_parse_style(ch, &ctx);
                 break;
             case DISPATCH_COLOR:
-                if (ctx.setted_colors == 2) {
-                    ctx.state = READING;
+                if (!dispatch_color(dispatch_to, &ctx))
                     break;
-                }
-                ctx.write_callback = clbk_increment_setted_colors;
-                ctx.state = dispatch_to;
                 continue;
             case READING_BASIC_COLOR:
                 hand_parse_basic_color(ch, &ctx);
@@ -274,36 +331,42 @@ static void style(const char **ptrs) {
             case READING_RGB_COLOR:
                 hand_parse_rgb_color(ch, &ctx);
                 break;
-            case READING_RESET:
-                ctx.state = WRITE_STYLING;
-                ctx.prsbuf[0] = '0';
-                ctx.prsbuf[1] = '\0';
-                break;
-            case SKIP_UNTIL_CLOSE:
+            case READING_RESETS:
+                hand_parse_reset(ch, &ctx);
                 break;
             case WRITE_STYLING:
                 hand_write_styling(&ctx);
                 break;
+            case SKIP_STYLING:
+                break;
+            case CHANGE_COLOR_GROUND:
+                clbk_increment_setted_colors(&ctx);
+                ctx.state = READING;
+                break;
         }
 
-        if (ctx.state != WRITE_STYLING) {
+        if (ctx.state != WRITE_STYLING)
             (*ptrs)++;
-        }
     }
 
     if (!ctx.first_style) {
         putchar('m');
-    }    
+    }
+
+    if (ctx.end_style_callback) {
+        ctx.end_style_callback(&ctx);
+    }
 }
 
-void hand_write_styling(ContextVariables *ctx) {
-    ctx->state = READING;
-    
-    if (ctx->write_callback != NULL) {
-        ctx->write_callback(ctx);
+static bool dispatch_color(State dispatch_to, StyleContext *ctx) {
+    if (ctx->setted_colors == 2) {
+        ctx->state = READING;
+        return false;
     }
-    
-    write_styling(ctx->prsbuf, &ctx->first_style);
+
+    ctx->write_callback = clbk_increment_setted_colors;
+    ctx->state = dispatch_to;
+    return true;
 }
 
 inline bool is_valid_style(char ch) {
@@ -315,33 +378,33 @@ inline bool is_valid_basic_color(char ch) {
 }
 
 inline bool is_valid_rgb_color(char ch) {
+    ch = toupper_s(ch);
     return (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F');
 }
 
 inline bool is_valid_a256_color(const char *srcbuf) {
     bool only_zeros = strcmp(srcbuf, "000") == 0;
-    // for (int i = 0; srcbuf[i] != '\0'; i++) {
-    //     if (srcbuf[i] != '0')
-    //         only_zeros = false;
-    // }
-    bool res = (strtol(srcbuf, NULL, 10) <= 255) || only_zeros;
-    return res;
+    return (strtol(srcbuf, NULL, 10) <= 255) || only_zeros;
+}
+
+inline bool is_valid_reset(char ch) {
+    return (isupper_s(ch) && STYLE_RESETS[utonum(ch)]) || ch == 'f' || ch == 'b';
 }
 
 void parse_style(const char *srcbuf, char *prsbuf) {
     const char *sty = STYLES[utonum(srcbuf[0])];
-    snprintf(prsbuf, STYLE_MAX_SZ + 1, "%s", sty);
+    snprintf(prsbuf, STYLE_MAX_SZ + 1, "%.3s", sty);
 }
 
 void parse_basic_color(const char *srcbuf, char *prsbuf, char ground) {
-    uint8 clr = ground == FOREGROUND ? 30 : 40;
+    uint8 clr = (ground == FOREGROUND) ? 30 : 40;
     int count = 0;
     if (srcbuf[0] == HI_COLOR_PREFIX) {
         clr += 60;
         count++;
     }
     clr += COLORS[ltonum(srcbuf[count])] - '0';
-    snprintf(prsbuf, PRS_BSC_MASX_SZ + 1,"%d", clr);
+    snprintf(prsbuf, PRS_BSC_MASX_SZ + 1, "%d", clr);
 }
 
 void parse_a256_color(const char *srcbuf, char *prsbuf, char ground) {
@@ -361,7 +424,25 @@ void parse_rgb_color(const char *srcbuf, char *prsbuf, char ground) {
     snprintf(prsbuf, PRS_RGB_MAX_SZ + 1, "%c8;2;%d;%d;%d", ground, r, g, b);
 }
 
-void hand_parse_style(char ch, ContextVariables *ctx) {
+void parse_reset(const char *srcbuf, char *prsbuf) {
+    char ch = srcbuf[0];
+    char sty[PRS_RESET_MAZ_SZ] = {0};
+    
+    switch (ch) {
+        case 'f':
+            strcpy(sty, "39");
+            break;
+        case 'b':
+            strcpy(sty, "49");
+            break;
+        default:
+            strcpy(sty, STYLE_RESETS[utonum(ch)]);
+    }
+
+    snprintf(prsbuf, PRS_RESET_MAZ_SZ + 1, "%.3s", sty);
+}
+
+void hand_parse_style(char ch, StyleContext *ctx) {
     if (!is_valid_style(ch)) {
         ctx->state = READING;
         return;
@@ -375,7 +456,7 @@ void hand_parse_style(char ch, ContextVariables *ctx) {
     parse_style(ctx->srcbuf, ctx->prsbuf);
 }
 
-void hand_parse_basic_color(char ch, ContextVariables *ctx) {
+void hand_parse_basic_color(char ch, StyleContext *ctx) {
     if (ch != HI_COLOR_PREFIX || ctx->counter == 1) {
         if (!is_valid_basic_color(ch)) {
             ctx->state = READING;
@@ -395,7 +476,7 @@ void hand_parse_basic_color(char ch, ContextVariables *ctx) {
     parse_basic_color(ctx->srcbuf, ctx->prsbuf, ctx->color_ground);
 }
 
-void hand_parse_a256_color(char ch, ContextVariables *ctx) {
+void hand_parse_a256_color(char ch, StyleContext *ctx) {
     if (!isdigit_s(ch)) {
         ctx->state = READING;
         return;
@@ -418,7 +499,7 @@ void hand_parse_a256_color(char ch, ContextVariables *ctx) {
     parse_a256_color(ctx->srcbuf, ctx->prsbuf, ctx->color_ground);
 }
 
-void hand_parse_rgb_color(char ch, ContextVariables *ctx) {
+void hand_parse_rgb_color(char ch, StyleContext *ctx) {
     if (!is_valid_rgb_color(ch)) {
         ctx->state = READING;
         return;
@@ -434,10 +515,37 @@ void hand_parse_rgb_color(char ch, ContextVariables *ctx) {
     parse_rgb_color(ctx->srcbuf, ctx->prsbuf, ctx->color_ground);
 }
 
+void hand_parse_reset(char ch, StyleContext *ctx) {
+    if (!is_valid_reset(ch)) {
+        return; // purposely mantains the READING_RESETS state
+    }
+
+    ctx->state = WRITE_STYLING;
+    ctx->write_callback = clbk_change_state_to_reading_resets;
+
+    if (ch == 'b') {
+        ctx->end_style_callback = clbk_finish_reset_with_erase_in_line;
+    }
+    
+    ctx->srcbuf[0] = ch;
+    ctx->srcbuf[1] = '\0';
+
+    parse_reset(ctx->srcbuf, ctx->prsbuf);
+}
+
 void write_styling(const char *prsbuf, bool *fst_style_flag) {
     if (*fst_style_flag) {
         *fst_style_flag = false;
         printf(ESC);
     }
     printf("%s;", prsbuf);
+}
+
+void hand_write_styling(StyleContext *ctx) {
+    write_styling(ctx->prsbuf, &ctx->first_style);
+    ctx->state = READING;
+    
+    if (ctx->write_callback != NULL) {
+        ctx->write_callback(ctx);
+    }
 }
